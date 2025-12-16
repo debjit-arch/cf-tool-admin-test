@@ -1,0 +1,12 @@
+All Unique Departments: [
+  'Information Security Officer (ISO)'-M,
+  'ISMS Steering Committee'-M,
+  'Admin & Facilities',
+  'IT Department'-Infra + Application,
+  'IT Infra',
+  'Vendor Management',
+  'Procurement',
+  'Legal',
+  'HR',
+  'IT Applications'
+]
