@@ -16,13 +16,6 @@ API.interceptors.request.use(async (config) => {
     config.headers["x-org"] = user.organization;
   }
 
-  // ===== REGION LOGIC =====
-  if (user.region) {
-    // already known
-    config.headers["x-region"] = user.region;
-    return config;
-  }
-
   // detect via browser
   if (navigator.geolocation) {
     await new Promise((resolve) => {
