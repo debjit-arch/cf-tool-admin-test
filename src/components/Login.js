@@ -1,4 +1,3 @@
-              disabled={loading}
 import React, { Component } from "react";
 import API from "../api/api";
 import { setToken } from "../utils/auth";
