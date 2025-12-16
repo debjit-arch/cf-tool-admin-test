@@ -1,33 +1,45 @@
+              disabled={loading}
 import React, { Component } from "react";
 import API from "../api/api";
 import { setToken } from "../utils/auth";
 
 class Login extends Component {
-  state = { email: "", password: "", error: "", loading: false };
+  // Add 'region' state, defaulted to 'US' for VPN users
+  state = { email: "", password: "", region: "US", error: "", loading: false };
 
   handleChange = (e) => this.setState({ [e.target.name]: e.target.value });
 
   handleSubmit = async (e) => {
     e.preventDefault();
     this.setState({ loading: true, error: "" });
+    const { email, password, region } = this.state;
 
     try {
+      // 1. SAVE THE SELECTED REGION TO SESSION STORAGE
+      // This is crucial: The API Interceptor reads this key before sending the login request.
+      sessionStorage.setItem("selected_region", region);
+
       const { data } = await API.post("/users/login", {
-        email: this.state.email,
-        password: this.state.password,
+        email: email,
+        password: password,
       });
 
       // Save token for API auth
       setToken(data.token);
 
-      // ✅ Save logged-in user info (for role checks)
+      // ✅ Save logged-in user info (and persist the selected region)
       if (data.user) {
-        sessionStorage.setItem("user", JSON.stringify(data.user));
+        // Ensure the saved user object also reflects the selected region for future session checks
+        const user = { ...data.user, region: region };
+        sessionStorage.setItem("user", JSON.stringify(user));
       }
 
       // Redirect
       this.props.history.push("/");
     } catch (err) {
+      // Clean up the temporary session item on failure
+      sessionStorage.removeItem("selected_region");
+
       this.setState({
         error: err.response?.data?.error || "Login failed",
         loading: false,
@@ -36,7 +48,7 @@ class Login extends Component {
   };
 
   render() {
-    const { email, password, error, loading } = this.state;
+    const { email, password, region, error, loading } = this.state;
 
     return (
       <div style={styles.container}>
@@ -47,6 +59,24 @@ class Login extends Component {
           {error && <div style={styles.error}>{error}</div>}
 
           <form onSubmit={this.handleSubmit} style={styles.form}>
+            {/* --- NEW REGION SELECTOR --- */}
+            <div style={styles.formGroup}>
+              <label style={styles.label}>Region for Admin Tool</label>
+              <select
+                name="region"
+                value={region}
+                onChange={this.handleChange}
+                disabled={loading}
+                style={styles.input}
+              >
+                <option value="US">United States (US)</option>
+                <option value="EU">European Union (EU)</option>
+                <option value="INDIA">India</option>
+                <option value="AUTO">Auto (Geolocation)</option>
+              </select>
+            </div>
+            {/* --------------------------- */}
+
             <div style={styles.formGroup}>
               <label style={styles.label}>Email</label>
               <input
@@ -100,6 +130,7 @@ class Login extends Component {
 }
 
 const styles = {
+  // ... (Your styles remain the same)
   container: {
     height: "100vh",
     display: "flex",
@@ -194,9 +225,9 @@ const styles = {
 // Spinner keyframes
 const styleSheet = document.styleSheets[0];
 const keyframes = `@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }`;
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }`;
 styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
 
 export default Login;
