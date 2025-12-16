@@ -17,24 +17,28 @@ API.interceptors.request.use(async (config) => {
   }
 
   // --- START REGION LOGIC UPDATE ---
-  let region = "US"; // Default region is US
+  let region = "US";
+
   const manualRegion = sessionStorage.getItem("selected_region");
 
-  // 1. Check for manually selected region (set on login form)
+  // 1️⃣ Login-time manual selection
   if (manualRegion && manualRegion !== "AUTO") {
     region = manualRegion;
-    // Remove the key to ensure subsequent non-login requests use the stored user region
-    sessionStorage.removeItem("selected_region");
   }
-  // 2. If 'AUTO' is selected (or no manual choice), run geolocation logic
-  else if (manualRegion === "AUTO" || !manualRegion) {
+
+  // 2️⃣ Persisted user region (MOST IMPORTANT)
+  else if (user.region) {
+    region = user.region;
+  }
+
+  // 3️⃣ AUTO geolocation
+  else if (manualRegion === "AUTO") {
     if (navigator.geolocation) {
       await new Promise((resolve) => {
         navigator.geolocation.getCurrentPosition(
           (pos) => {
             const { latitude, longitude } = pos.coords;
 
-            // Existing Bounding Box Logic
             if (
               latitude >= 8 &&
               latitude <= 37 &&
@@ -50,30 +54,22 @@ API.interceptors.request.use(async (config) => {
             ) {
               region = "EU";
             } else {
-              region = "US"; // Default fallback for valid coordinates outside INDIA/EU
+              region = "US";
             }
 
-            // save user region to session (for post-login state)
             user.region = region;
             sessionStorage.setItem("user", JSON.stringify(user));
-
             resolve();
           },
-          () => {
-            // Geolocation permission denied or failed
-            region = "US"; // Geolocation failover
-            resolve();
-          }
+          () => resolve()
         );
       });
-    } else {
-      // Browser does not support geolocation
-      region = "US";
     }
   }
 
-  // Set the final region header
+  // 4️⃣ Set header
   config.headers["x-region"] = region;
+
   // --- END REGION LOGIC UPDATE ---
 
   return config;
